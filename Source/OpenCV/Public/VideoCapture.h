@@ -109,8 +109,8 @@ public:
 		UCVMat* frame;
 
 public:
-	cv::VideoCapture stream;
-	cv::Size size;
+	cv::VideoCapture *stream;
+	cv::Size *size;
 
 	// OpenCV prototypes
 	void UpdateFrame();

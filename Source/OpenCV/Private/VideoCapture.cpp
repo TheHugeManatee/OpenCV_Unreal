@@ -21,7 +21,8 @@ AVideoCapture::AVideoCapture()
 	ShouldResize = false;
 	ResizeDimensions = FVector2D(320, 240);
 	RefreshTimer = 0.0f;
-	stream = cv::VideoCapture();
+	stream = nullptr;
+	size = nullptr;
 	frame = nullptr;
 }
 
@@ -30,17 +31,18 @@ void AVideoCapture::BeginPlay()
 {
 	Super::BeginPlay();
 
-	frame = NewObject<UCVMat>();
+	frame = NewObject<UCVMat>(); 
 
 	// Open the stream
-	stream.open(CameraID);
-	if (stream.isOpened())
+	stream = new cv::VideoCapture(CameraID);
+
+	if (stream->isOpened())
 	{
 		// Initialize stream
 		isStreamOpen = true;
 		UpdateFrame();
 		VideoSize = FVector2D(frame->m.cols, frame->m.rows);
-		size = cv::Size(ResizeDimensions.X, ResizeDimensions.Y);
+		size = new cv::Size(ResizeDimensions.X, ResizeDimensions.Y);
 		VideoTexture = UTexture2D::CreateTransient(VideoSize.X, VideoSize.Y);
 		VideoTexture->UpdateResource();
 		VideoUpdateTextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, VideoSize.X, VideoSize.Y);
@@ -80,12 +82,12 @@ void AVideoCapture::ChangeOperation()
 
 void AVideoCapture::UpdateFrame()
 {
-	if (stream.isOpened())
+	if (stream->isOpened())
 	{
-		stream.read(frame->m);
+		stream->read(frame->m);
 		if (ShouldResize)
 		{
-			cv::resize(frame->m, frame->m, size);
+			cv::resize(frame->m, frame->m, *size);
 		}
 	}
 	else {
