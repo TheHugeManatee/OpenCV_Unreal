@@ -1,0 +1,83 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System.IO;
+using UnrealBuildTool;
+
+public class OpenCV : ModuleRules
+{
+	public OpenCV(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		
+		PublicIncludePaths.AddRange(
+			new string[] {
+				"OpenCV/Public",
+                "OpenCV/Classes"
+				// ... add public include paths required here ...
+			}
+			);
+				
+		
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"OpenCV/Private",
+				// ... add other private include paths required here ...
+			}
+			);
+			
+		
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				// ... add other public dependencies that you statically link with here ...
+			}
+			);
+			
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+                "Core",
+                "CoreUObject",
+                "Engine",
+                "Projects",
+                "InputCore",
+                "RHI",
+                "RenderCore"
+            }
+			);
+		
+		
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[]
+			{
+				// ... add any modules that your module loads dynamically here ...
+			}
+			);
+
+        LoadOpenCVLib(Target);
+
+    }
+
+    public void LoadOpenCVLib(ReadOnlyTargetRules Target)
+    {
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            //Add the import library
+            PublicLibraryPaths.AddRange(
+                new string[] {
+                     Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "x64", "vc15", "lib")
+                });
+
+            PublicAdditionalLibraries.Add("opencv_world341.lib");
+            PublicIncludePaths.AddRange(new string[] { Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "include") });
+
+            //Delay - load the DLL, so we can load it from the right place first
+            PublicDelayLoadDLLs.Add("opencv_world341.dll");
+        }
+        else if (Target.Platform == UnrealTargetPlatform.Mac)
+        {
+            PublicDelayLoadDLLs.Add(Path.Combine(ModuleDirectory, "Mac", "Release", "opencv_world341.dylib"));
+        }
+    }
+}
