@@ -109,14 +109,5 @@ public:
   TArray<FColor> Data;
 
 protected:
-  // Use this function to update the texture rects you want to change:
-  // NOTE: This is very similar to a in UTexture2D::UpdateTextureRegions but it is compiled
-  // WITH_EDITOR and is not marked as ENGINE_API so it cannot be linked from plugins. FROM:
-  // https://wiki.unrealengine.com/Dynamic_Textures
-  void UpdateTextureRegions(FTextureRenderTarget2DResource* TextureResource, uint32 NumRegions,
-                            FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp,
-                            uint8* SrcData, bool bFreeData);
 
-  // Pointer to update texture region 2D struct
-  FUpdateTextureRegion2D* VideoUpdateTextureRegion;
 };
