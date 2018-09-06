@@ -9,6 +9,8 @@
 
 #include <opencv2/opencv.hpp>
 
+DEFINE_LOG_CATEGORY(OpenCV);
+
 void FOpenCVModule::StartupModule()
 {
 	// Get the base directory of this plugin
@@ -24,15 +26,13 @@ void FOpenCVModule::StartupModule()
 
 	OpenCVLibraryHandle = !LibraryPath.IsEmpty() ? FPlatformProcess::GetDllHandle(*LibraryPath) : nullptr;
 
-	if (!OpenCVLibraryHandle)
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("OpenCV Library Error", "Failed to load opencv library"));
+	if (OpenCVLibraryHandle) {
+		UE_LOG(OpenCV, Log, TEXT("Loaded OpenCV Version %d.%d.%d"), CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION)
 	}
-
-	cv::Mat m = cv::Mat::zeros(512, 512, CV_8UC3);
-	cv::circle(m, cv::Point(256, 256), 30, cv::Scalar(255, 127, 0), 3);
-	cv::imshow("test", m);
-	cv::waitKey(0);
+	else
+	{
+		UE_LOG(OpenCV, Error, TEXT("Failed to load opencv library! Check your include/lib paths and make sure opencv_world341.dll is deployed!"))
+	}
 }
 
 void FOpenCVModule::ShutdownModule()
