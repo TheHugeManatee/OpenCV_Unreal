@@ -35,6 +35,7 @@ void AVideoCapture::BeginPlay() {
   Super::BeginPlay();
 
   frame = NewObject<UCVUMat>();
+  size = new cv::Size(ResizeDimensions.X, ResizeDimensions.Y);
 
   // Open the stream
   if (CameraID >= 0) {
@@ -59,7 +60,6 @@ void AVideoCapture::BeginPlay() {
 
 void AVideoCapture::ResetTexture() {
   VideoSize = FVector2D(frame->m.cols, frame->m.rows);
-  size = new cv::Size(ResizeDimensions.X, ResizeDimensions.Y);
 
   if (RTVideoTexture) {
     // RTVideoTexture = NewObject<UTextureRenderTarget2D>();

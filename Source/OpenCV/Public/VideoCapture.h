@@ -15,8 +15,6 @@
 
 #include "VideoCapture.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTextureResetSignature, class UTexture*, NewTexture);
-
 UCLASS()
 class OPENCV_API AVideoCapture : public AActor {
   GENERATED_BODY()
@@ -40,12 +38,7 @@ public:
   UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
   void OnVideoFrameUpdated();
 
-  /**
-   * This texture delegate is called every time the texture is reset.
-   * This typically happens during startup and when the camera stream is reset, for example because
-   * the texture dimensions have changed. Bind to this to get the the texture without having to
-   * query for the UTexture* object on every single frame.
-   */
+  // Event is signaled whenever the video texture is reset, i.e. when the dimensions are changed
   UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
   void OnVideoTextureReset();
 
@@ -109,5 +102,4 @@ public:
   TArray<FColor> Data;
 
 protected:
-
 };
