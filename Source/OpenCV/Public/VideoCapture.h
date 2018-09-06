@@ -18,114 +18,105 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTextureResetSignature, class UTexture*, NewTexture);
 
 UCLASS()
-class OPENCV_API AVideoCapture : public AActor
-{
-	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	AVideoCapture();
+class OPENCV_API AVideoCapture : public AActor {
+  GENERATED_BODY()
 
-	// Called every frame
-	virtual void Tick(float DeltaSeconds) override;
+public:
+  // Sets default values for this actor's properties
+  AVideoCapture();
+
+  // Called every frame
+  virtual void Tick(float DeltaSeconds) override;
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+  // Called when the game starts or when spawned
+  virtual void BeginPlay() override;
 
-	// Called whenever the texture dimensions/format changes
-	void ResetTexture();
-
-public:
-	// Blueprint Event called every time the video frame is updated
-	UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
-		void OnVideoFrameUpdated();
-
-	/**
-	* This texture delegate is called every time the texture is reset.
-	* This typically happens during startup and when the camera stream is reset, for example because the texture dimensions
-	* have changed. Bind to this to get the the texture without having to query for the UTexture* object on every single frame.
-	*/
-	UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
-		void OnVideoTextureReset();
-
+  // Called whenever the texture dimensions/format changes
+  void ResetTexture();
 
 public:
-	// The device ID opened by the Video Stream
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		int32 CameraID;
+  // Blueprint Event called every time the video frame is updated
+  UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
+  void OnVideoFrameUpdated();
 
-	// The video file opened if no video capture is active
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		FString VideoFile;
-
-	// The operation that will be applied to every frame
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		int32 OperationMode;
-
-	// If the webcam images should be resized every frame
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		bool ShouldResize;
-
-	// The targeted resize width and height (width, height)
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		FVector2D ResizeDimensions;
-
-	// The rate at which the color data array and video texture is updated (in frames per second)
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		float RefreshRate;
-
-	// The refresh timer
-	UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
-		float RefreshTimer;
-	
-	// OpenCV fields
-	UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
-		UCVUMat* frame;
+  /**
+   * This texture delegate is called every time the texture is reset.
+   * This typically happens during startup and when the camera stream is reset, for example because
+   * the texture dimensions have changed. Bind to this to get the the texture without having to
+   * query for the UTexture* object on every single frame.
+   */
+  UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
+  void OnVideoTextureReset();
 
 public:
-	cv::VideoCapture *stream;
-	cv::Size *size;
+  // The device ID opened by the Video Stream
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  int32 CameraID;
 
-	// OpenCV prototypes
-	void UpdateFrame();
+  // The video file opened if no video capture is active
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  FString VideoFile;
 
-	// TODO: refactor into a BP-callable
-	void UpdateTexture();
+  // The operation that will be applied to every frame
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  int32 OperationMode;
 
-	// If the stream has succesfully opened yet
-	UPROPERTY(BlueprintReadOnly, Category="OpenCV|VideoCapture")
-		bool isStreamOpen;
+  // If the webcam images should be resized every frame
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  bool ShouldResize;
 
-	// The videos width and height (width, height)
-	UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
-		FVector2D VideoSize;
+  // The targeted resize width and height (width, height)
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  FVector2D ResizeDimensions;
 
+  // The rate at which the color data array and video texture is updated (in frames per second)
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  float RefreshRate;
 
-	// The current video frame's corresponding texture
-	UPROPERTY(BlueprintReadOnly, Category = "OpenCV|VideoCapture")
-		UTexture2D* VideoTexture;
+  // The refresh timer
+  UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
+  float RefreshTimer;
 
-	// The current video frame's corresponding texture
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
-		UTextureRenderTarget2D* RTVideoTexture;
+  // OpenCV fields
+  UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
+  UCVUMat* frame;
 
-	// The current data array
-	UPROPERTY(BlueprintReadOnly, Category = "OpenCV|VideoCapture")
-		TArray<FColor> Data;
+public:
+  cv::VideoCapture* stream;
+  cv::Size* size;
+
+  // OpenCV prototypes
+  void UpdateFrame();
+
+  // TODO: refactor into a BP-callable
+  void UpdateTexture();
+
+  // If the stream has succesfully opened yet
+  UPROPERTY(BlueprintReadOnly, Category = "OpenCV|VideoCapture")
+  bool isStreamOpen;
+
+  // The videos width and height (width, height)
+  UPROPERTY(BlueprintReadWrite, Category = "OpenCV|VideoCapture")
+  FVector2D VideoSize;
+
+  // The current video frame's corresponding texture
+  UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "OpenCV|VideoCapture")
+  UTextureRenderTarget2D* RTVideoTexture;
+
+  // The current data array
+  UPROPERTY(BlueprintReadOnly, Category = "OpenCV|VideoCapture")
+  TArray<FColor> Data;
 
 protected:
+  // Use this function to update the texture rects you want to change:
+  // NOTE: This is very similar to a in UTexture2D::UpdateTextureRegions but it is compiled
+  // WITH_EDITOR and is not marked as ENGINE_API so it cannot be linked from plugins. FROM:
+  // https://wiki.unrealengine.com/Dynamic_Textures
+  void UpdateTextureRegions(FTextureRenderTarget2DResource* TextureResource, uint32 NumRegions,
+                            FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp,
+                            uint8* SrcData, bool bFreeData);
 
-	// Use this function to update the texture rects you want to change:
-	// NOTE: There is a method called UpdateTextureRegions in UTexture2D but it is compiled WITH_EDITOR and is not marked as ENGINE_API so it cannot be linked
-	// from plugins.
-	// FROM: https://wiki.unrealengine.com/Dynamic_Textures
-	void UpdateTextureRegions(FTextureResource* TextureResource, int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData);
-
-	// Pointer to update texture region 2D struct
-	FUpdateTextureRegion2D* VideoUpdateTextureRegion;
-
-
-	
-	
+  // Pointer to update texture region 2D struct
+  FUpdateTextureRegion2D* VideoUpdateTextureRegion;
 };
