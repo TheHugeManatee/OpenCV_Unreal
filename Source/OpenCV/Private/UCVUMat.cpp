@@ -2,6 +2,8 @@
 
 #include "UCVUMat.h"
 
+#include "OpenCV_Common.h"
+
 #include "Runtime/Engine/Classes/Engine/Texture2D.h"
 #include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
 

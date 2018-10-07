@@ -23,7 +23,9 @@ void FOpenCVModule::StartupModule() {
 #elif PLATFORM_MAC
   LibraryPath =
       FPaths::Combine(*BaseDir, TEXT("ThirdParty/opencv/Mac/bin/libopencv_world341.dylib"));
-#endif  // PLATFORM_WINDOWS
+#else
+  static_assert(false, "Other platforms are currently not supported!");
+#endif
 
   OpenCVLibraryHandle =
       !LibraryPath.IsEmpty() ? FPlatformProcess::GetDllHandle(*LibraryPath) : nullptr;

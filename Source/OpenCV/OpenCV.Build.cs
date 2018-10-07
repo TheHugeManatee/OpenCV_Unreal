@@ -1,5 +1,3 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
-
 using System.IO;
 using UnrealBuildTool;
 
@@ -8,8 +6,10 @@ public class OpenCV : ModuleRules
 	public OpenCV(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
+
+        bEnableExceptions = true;
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				"OpenCV/Public",
                 "OpenCV/Classes"
@@ -63,6 +63,8 @@ public class OpenCV : ModuleRules
     {
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
+            string OpenCVLibPath = Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "x64", "vc15");
+
             //Add the import library
             PublicLibraryPaths.AddRange(
                 new string[] {
@@ -72,8 +74,14 @@ public class OpenCV : ModuleRules
             PublicAdditionalLibraries.Add("opencv_world341.lib");
             PublicIncludePaths.AddRange(new string[] { Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "include") });
 
+
+
             //Delay - load the DLL, so we can load it from the right place first
             PublicDelayLoadDLLs.Add("opencv_world341.dll");
+
+            // Add a Runtime Dependency so the DLLs will be packaged correctly
+            RuntimeDependencies.Add(Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "x64", "vc15", "bin", "opencv_world341.dll"));
+            RuntimeDependencies.Add(Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "opencv", "x64", "vc15", "bin", "opencv_ffmpeg341_64.dll"));
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {

@@ -16,7 +16,7 @@
 	"Modules": [
 		{
 			"Name": "OpenCV",
-			"Type": "Developer",
+			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
 	]
