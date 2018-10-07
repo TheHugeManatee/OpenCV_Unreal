@@ -4,14 +4,5 @@
 
 #include "CoreMinimal.h"
 
-// Exception handling macros
-#if _HAS_EXCEPTIONS
-#  define CVTRY try
-#  define CVCATCH catch
-#else
-#  define CVTRY
-#  define CVCATCH(x) if(false)
-#endif
-
 // Declare our own log category
 DECLARE_LOG_CATEGORY_EXTERN(OpenCV, Log, All);

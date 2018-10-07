@@ -15,6 +15,10 @@
 
 #include "VideoCapture.generated.h"
 
+class AVideoCapture;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FVideoFrameDelegate, UCVUMat*, newFrame);
+
 UCLASS()
 class OPENCV_API AVideoCapture : public AActor {
   GENERATED_BODY()
@@ -37,6 +41,9 @@ public:
   // Blueprint Event called every time the video frame is updated
   UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")
   void OnVideoFrameUpdated();
+
+  UPROPERTY(BlueprintAssignable, Category = "OpenCV|VideoCapture")
+  FVideoFrameDelegate On_VideoFrameUpdated;
 
   // Event is signaled whenever the video texture is reset, i.e. when the dimensions are changed
   UFUNCTION(BlueprintImplementableEvent, Category = "OpenCV|VideoCapture")

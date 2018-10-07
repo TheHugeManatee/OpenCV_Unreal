@@ -23,7 +23,7 @@ UCVUMat::~UCVUMat() {
 };
 
 UCVUMat *UCVUMat::createMat(int32 rows, int32 cols, FCVMatType type) {
-  UCVUMat *r = NewObject<UCVUMat>();
+  auto *r = NewObject<UCVUMat>();
   int cvType = 0;
 
   switch (type) {
@@ -51,33 +51,79 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
 
   auto VideoUpdateTextureRegion = new FUpdateTextureRegion2D{0, 0, 0, 0, VideoSizeX, VideoSizeY};
 
-  cv::UMat frame = m;
+  try {
+    if (m.cols != renderTarget->SizeX || m.rows != renderTarget->SizeY) {
+      if (resize) {
+        cv::resize(m, m, cv::Size{renderTarget->SizeX, renderTarget->SizeY});
+      } else {
+        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
+        return nullptr;
+      }
+    }
 
-  if (!renderTarget) {
-    renderTarget = NewObject<UTextureRenderTarget2D>();
-    renderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, EPixelFormat::PF_B8G8R8A8, true);
-    renderTarget->UpdateResourceImmediate(false);
-  }
+    ETextureRenderTargetFormat requiredRTF{ETextureRenderTargetFormat::RTF_R8};
+    size_t requiredDataSize{0};
+    int requiredConversion{0};
+    int requiredDataWrapType{0};
+    uint32 targetElementSize{0};
 
-  if (frame.cols != renderTarget->SizeX || frame.rows != renderTarget->SizeY) {
-    if (resize) {
-      cv::resize(m, frame, cv::Size{renderTarget->SizeX, renderTarget->SizeY});
-    } else {
-      UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
+    if (m.type() == CV_8UC1) {
+      // convert to R8
+      requiredRTF = ETextureRenderTargetFormat::RTF_R8;
+      requiredDataSize = m.total() * 1;
+      requiredConversion = -1;  // direct copy
+      requiredDataWrapType = CV_8UC1;
+      targetElementSize = 1;
+    } else if (m.type() == CV_8UC3) {
+      // convert to BGRA
+      requiredRTF = ETextureRenderTargetFormat::RTF_RGBA8;
+      requiredDataSize = m.total() * 4;
+      requiredConversion = CV_BGR2BGRA;
+      requiredDataWrapType = CV_8UC4;
+      targetElementSize = 4;
+    } else if (m.type() == CV_8UC4) {
+      // convert to BGRA
+      requiredRTF = ETextureRenderTargetFormat::RTF_RGBA8;
+      requiredDataSize = m.total() * 4;
+      requiredConversion = -1;  // direct copy
+      requiredDataWrapType = CV_8UC4;
+      targetElementSize = 4;
+    }
+
+    if (!targetElementSize) {
+      UE_LOG(OpenCV, Warning, TEXT("It seems that the OpenCV type is not supported!"));
       return nullptr;
     }
+
+    // Reinitialize texture if necessary
+    if (!renderTarget || renderTarget->RenderTargetFormat != requiredRTF) {
+      renderTarget->RenderTargetFormat = requiredRTF;
+      renderTarget->Filter = TextureFilter::TF_Bilinear;
+      renderTarget->InitAutoFormat(VideoSizeX, VideoSizeY);
+      renderTarget->UpdateResourceImmediate(false);
+    }
+
+    auto dataPtr = new uint8[requiredDataSize];
+    if (requiredConversion != -1) {
+      // wrap a cv::Mat around the buffer
+      cv::Mat dataWrap(m.size(), requiredDataWrapType, dataPtr);
+      // convert to the right layout (FColor is BGRA)
+      cv::cvtColor(m, dataWrap, requiredConversion);
+
+      UpdateTextureRegions((FTextureRenderTarget2DResource *)renderTarget->Resource, (uint32)1,
+                           VideoUpdateTextureRegion, (uint32)(targetElementSize * VideoSizeX),
+                           targetElementSize, dataPtr, true);
+    } else {
+      auto mat = m.getMat(cv::ACCESS_READ);
+      memcpy(dataPtr, mat.data, requiredDataSize);
+      UpdateTextureRegions((FTextureRenderTarget2DResource *)renderTarget->Resource, (uint32)1,
+                           VideoUpdateTextureRegion, (uint32)(targetElementSize * VideoSizeX),
+                           targetElementSize, dataPtr, true);
+    }
+  } catch (cv::Exception &e) {
+    UE_LOG(OpenCV, Warning, TEXT("Function %s: Caught OpenCV Exception: %s"), TEXT(__FUNCTION__),
+           UTF8_TO_TCHAR(e.what()));
   }
-
-  auto dataSize = m.total() * 4;
-  auto dataPtr = new uint8[dataSize];
-
-  cv::Mat dataWrap(m.size(), CV_8UC4, dataPtr);
-  // FColor also has a BGRA layout
-  cv::cvtColor(m, dataWrap, CV_BGR2BGRA);
-
-  UpdateTextureRegions((FTextureRenderTarget2DResource *)renderTarget->Resource, (uint32)1,
-                       VideoUpdateTextureRegion, (uint32)(4 * VideoSizeX), (uint32)4, dataPtr,
-                       true);
 
   return renderTarget;
 }
@@ -94,8 +140,8 @@ void UCVUMat::UpdateTextureRegions(FTextureRenderTarget2DResource *TextureResour
     uint8 *SrcData;
   };
 
-  FUpdateTextureRegionsData *RegionData = new FUpdateTextureRegionsData{
-      TextureResource, NumRegions, Regions, SrcPitch, SrcBpp, SrcData};
+  auto RegionData = new FUpdateTextureRegionsData{TextureResource, NumRegions, Regions,
+                                                  SrcPitch,        SrcBpp,     SrcData};
 
   ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
       UpdateTextureRegionsData, FUpdateTextureRegionsData *, RegionData, RegionData, bool,

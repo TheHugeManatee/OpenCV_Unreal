@@ -2,6 +2,8 @@
 
 #include "VideoCapture.h"
 
+#include "OpenCV_Common.h"
+
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "Runtime/Core/Public/HAL/RunnableThread.h"
 
@@ -52,9 +54,12 @@ void AVideoCapture::BeginPlay() {
     UpdateFrame();
     ResetTexture();
 
-    // Do first frame
+    //// Do first frame
     UpdateTexture();
     OnVideoFrameUpdated();
+    On_VideoFrameUpdated.Broadcast(frame);
+  } else {
+    UE_LOG(OpenCV, Warning, TEXT("Could not open Stream %s "), *VideoFile);
   }
 }
 
@@ -81,6 +86,7 @@ void AVideoCapture::Tick(float DeltaTime) {
     UpdateFrame();
     UpdateTexture();
     OnVideoFrameUpdated();
+    On_VideoFrameUpdated.Broadcast(frame);
   }
 }
 
@@ -96,9 +102,9 @@ void AVideoCapture::UpdateFrame() {
 }
 
 void AVideoCapture::UpdateTexture() {
-  if (isStreamOpen && !frame->m.empty()) {
+  if (!frame->m.empty()) {
     if (RTVideoTexture) {
-      frame->toRenderTarget(RTVideoTexture, false);
+      frame->toRenderTarget(RTVideoTexture, true);
     }
   }
 }

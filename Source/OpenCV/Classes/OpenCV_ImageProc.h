@@ -16,14 +16,14 @@ class UOpenCV_ImageProcessing : public UObject {
 public:
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Gaussian Filter"),
             Category = "OpenCV|ImageProcessing")
-  static void gaussianFilter(const UCVUMat* src, UCVUMat* dst, float sigma);
+  static UCVUMat* gaussianFilter(const UCVUMat* src, UCVUMat* dst, float sigma);
 
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Median Filter"),
             Category = "OpenCV|ImageProcessing")
-  static void medianFilter(const UCVUMat* src, UCVUMat* dst, int32 filterSize);
+  static UCVUMat* medianFilter(const UCVUMat* src, UCVUMat* dst, int32 filterSize);
 
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bilateral Filter"),
             Category = "OpenCV|ImageProcessing")
-  static void bilateralFilter(const UCVUMat* src, UCVUMat* dst, int32 d, float sigmaColor,
-                              float sigmaSpace);
+  static UCVUMat* bilateralFilter(const UCVUMat* src, UCVUMat* dst, int32 d, float sigmaColor,
+                                  float sigmaSpace);
 };
