@@ -61,7 +61,7 @@ public:
    * If no renderTarget is given, a new one will be created. If resize = true, will resize the
    * UCVMat to the dimensions of the renderTarget
    */
-  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Render Target"),
+  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Texture2D"),
             Category = "OpenCV|Core")
   UTexture2D* toTexture(UTexture2D* renderTarget, bool resize);
 

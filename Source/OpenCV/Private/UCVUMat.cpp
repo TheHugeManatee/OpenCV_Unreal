@@ -138,13 +138,9 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
   auto size = cv::Size{m.size()};
 
   try {
-    if (m.cols != renderTarget->SizeX || m.rows != renderTarget->SizeY) {
-      if (resize) {
-        cv::resize(m, m, cv::Size{renderTarget->SizeX, renderTarget->SizeY});
-      } else {
-        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
-        return nullptr;
-      }
+    // create a new texture if none was passed in
+    if (!renderTarget) {
+      renderTarget = NewObject<UTextureRenderTarget2D>();
     }
 
     // For render Targets, we always convert to BGRA as no other reasonable formats are supported
@@ -164,18 +160,26 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
         return nullptr;
     }
 
-    size_t requiredDataSize{m.total() * targetElementSize};
-    uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-
     // Reinitialize texture if necessary
-    if (!renderTarget) {
-      renderTarget = NewObject<UTextureRenderTarget2D>();
-    }
     if (renderTarget->GetFormat() != requiredPF) {
       renderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
       renderTarget->UpdateResourceImmediate(false);
     }
 
+    // check if we should resize
+    if (m.cols != renderTarget->SizeX || m.rows != renderTarget->SizeY) {
+      if (resize) {
+        cv::resize(m, m, cv::Size{renderTarget->SizeX, renderTarget->SizeY});
+        VideoSizeX = renderTarget->SizeX;
+        VideoSizeY = renderTarget->SizeY;
+      } else {
+        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
+        return nullptr;
+      }
+    }
+
+    size_t requiredDataSize{m.total() * targetElementSize};
+    uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
     auto resource = reinterpret_cast<FTextureRenderTarget2DResource *>(renderTarget->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
@@ -195,15 +199,6 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
   auto size = cv::Size{m.size()};
 
   try {
-    if (m.cols != texture->GetSizeX() || m.rows != texture->GetSizeY()) {
-      if (resize) {
-        cv::resize(m, m, cv::Size{texture->GetSizeX(), texture->GetSizeY()});
-      } else {
-        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
-        return nullptr;
-      }
-    }
-
     EPixelFormat requiredPF{EPixelFormat::PF_Unknown};
     int requiredConversion{-1};  // The OpenCV conversion parameter as used by cv::cvtColor
     uint32 targetElementSize{0};
@@ -230,18 +225,26 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
         break;
     }
 
-    size_t requiredDataSize{m.total() * targetElementSize};
-    uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-
-    // Reinitialize texture if necessary
-    if (!texture) {
-      texture = NewObject<UTexture2D>();
-    }
-    if (texture->GetPixelFormat() != requiredPF) {
-      texture->CreateTransient(VideoSizeX, VideoSizeY, requiredPF);
+    // create/reinitialize texture if necessary
+    if (!texture || texture->GetPixelFormat() != requiredPF) {
+      texture = UTexture2D::CreateTransient(VideoSizeX, VideoSizeY, requiredPF);
       texture->UpdateResource();
     }
 
+    // check if we should resize
+    if (m.cols != texture->GetSizeX() || m.rows != texture->GetSizeY()) {
+      if (resize) {
+        cv::resize(m, m, cv::Size{texture->GetSizeX(), texture->GetSizeY()});
+        VideoSizeX = texture->GetSizeX();
+        VideoSizeY = texture->GetSizeY();
+      } else {
+        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
+        return nullptr;
+      }
+    }
+
+    size_t requiredDataSize{m.total() * targetElementSize};
+    uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
     auto resource = reinterpret_cast<FTexture2DResource *>(texture->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
