@@ -12,6 +12,7 @@ class FTextureRenderTarget2DResource;
 class FTexture2DResource;
 struct FUpdateTextureRegion2D;
 class UTextureRenderTarget2D;
+class UTexture2D;
 
 UENUM(BlueprintType)  //"BlueprintType" is essential to include
 enum class FCVMatType : uint8 {
@@ -55,14 +56,24 @@ public:
             Category = "OpenCV|Core")
   UTextureRenderTarget2D* toRenderTarget(UTextureRenderTarget2D* renderTarget, bool resize);
 
+  /**
+   * Convert/upload the UCVMat to a texture.
+   * If no renderTarget is given, a new one will be created. If resize = true, will resize the
+   * UCVMat to the dimensions of the renderTarget
+   */
+  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Render Target"),
+            Category = "OpenCV|Core")
+  UTexture2D* toTexture(UTexture2D* renderTarget, bool resize);
+
 private:
-  // Use this function to update the texture rects you want to change:
-  // NOTE: This is very similar to a in UTexture2D::UpdateTextureRegions but it is compiled
-  // WITH_EDITOR and is not marked as ENGINE_API so it cannot be linked from plugins.
-  // Adapted from https://wiki.unrealengine.com/Dynamic_Textures
-  static void UpdateTextureRegions(FTextureRenderTarget2DResource* TextureResource,
-                                   uint32 NumRegions, FUpdateTextureRegion2D* Regions,
-                                   uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData);
+  //// Use this function to update the texture rects you want to change:
+  //// NOTE: This is very similar to a in UTexture2D::UpdateTextureRegions but it is compiled
+  //// WITH_EDITOR and is not marked as ENGINE_API so it cannot be linked from plugins.
+  //// Adapted from https://wiki.unrealengine.com/Dynamic_Textures
+  // static void UpdateTextureRegions(FTextureRenderTarget2DResource* TextureResource,
+  //                                 uint32 NumRegions, FUpdateTextureRegion2D* Regions,
+  //                                 uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool
+  //                                 bFreeData);
 
   // Pointer to update texture region 2D struct
   // FUpdateTextureRegion2D* VideoUpdateTextureRegion;
