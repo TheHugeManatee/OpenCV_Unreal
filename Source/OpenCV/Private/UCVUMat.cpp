@@ -180,7 +180,7 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = reinterpret_cast<FTextureRenderTarget2DResource *>(renderTarget->Resource);
+    auto resource = static_cast<FTextureRenderTarget2DResource *>(renderTarget->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);
@@ -245,7 +245,7 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = reinterpret_cast<FTexture2DResource *>(texture->Resource);
+    auto resource = static_cast<FTexture2DResource *>(texture->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);

@@ -8,6 +8,7 @@ public class OpenCV : ModuleRules
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         bEnableExceptions = true;
+        bEnableUndefinedIdentifierWarnings = false;
 
         PublicIncludePaths.AddRange(
 			new string[] {
