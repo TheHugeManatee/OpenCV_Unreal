@@ -7,9 +7,6 @@ Use OpenCV functionality from within Unreal Engine
  * Blueprint wrappers for image processing methods
  * Conversion of `UCVUMat` to Render target and vice versa
 
-# Usage
-To use the example project, simply open the uproject. You will be prompted to build the C++ code. You will also have to rebuild lighting data. If you want to play around with the C++ code, right-click on the `.uproject` file and choose "Generate Visual Studio Project Files".
-
 ## Using the plugin in your own project
 If you want to use the functinality in your own project, you will need to
  * Copy the Plugin from `Plugins/OpenCV` to your own project in the `Plugins` folder
@@ -30,5 +27,5 @@ If you want to use the functinality in your own project, you will need to
 # Platforms
 Currently only Windows is supported. This is mainly limited by my (non-existent) understanding of how building and including with external libraries works on different platforms.
 
-**Tested on Unreal Engine 4.19** <br/>
+**Tested on Windows, Unreal Engine 4.21** <br/>
 However, other versions might still work.
