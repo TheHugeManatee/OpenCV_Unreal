@@ -173,8 +173,8 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
         VideoSizeX = renderTarget->SizeX;
         VideoSizeY = renderTarget->SizeY;
       } else {
-        UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
-        return nullptr;
+        renderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
+        renderTarget->UpdateResourceImmediate(false);
       }
     }
 
