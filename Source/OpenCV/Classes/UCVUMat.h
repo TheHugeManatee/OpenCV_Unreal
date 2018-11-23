@@ -13,6 +13,7 @@ class FTexture2DResource;
 struct FUpdateTextureRegion2D;
 class UTextureRenderTarget2D;
 class UTexture2D;
+class UVolumeTexture;
 
 UENUM(BlueprintType)  //"BlueprintType" is essential to include
 enum class FCVMatType : uint8 {
@@ -64,6 +65,10 @@ public:
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Texture2D"),
             Category = "OpenCV|Core")
   UTexture2D* toTexture(UTexture2D* renderTarget, bool resize);
+
+  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Texture3D"),
+            Category = "OpenCV|Core")
+  UVolumeTexture* to3DTexture(UVolumeTexture* inTexture);
 
 private:
   //// Use this function to update the texture rects you want to change:

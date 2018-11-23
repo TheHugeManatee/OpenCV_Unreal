@@ -4,8 +4,9 @@
 
 #include "OpenCV_Common.h"
 
-#include "Runtime/Engine/Classes/Engine/Texture2D.h"
-#include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/VolumeTexture.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -255,4 +256,68 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
   }
 
   return texture;
+}
+
+UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
+  if (m.channels() != 1) {
+    UE_LOG(OpenCV, Error, TEXT("Channel mismatch: Volume has to be single-channel!"));
+    return nullptr;
+  }
+  if (m.dims != 3) {
+    UE_LOG(OpenCV, Error, TEXT("Dimensionality mismatch: cv::UMat has to contain an image!"));
+    return nullptr;
+  }
+  if (m.elemSize() != 1) {
+    UE_LOG(OpenCV, Error, TEXT("Pixel size mismatch: cv::UMat has to be 1 byte per pixel!"));
+    return nullptr;
+  }
+
+  // if no input texture is specified, create a new one
+  if (!inTexture) {
+    inTexture = NewObject<UVolumeTexture>();
+  }
+
+  FIntVector Dimensions{m.size[2], m.size[1], m.size[0]};
+  const int TotalSize = Dimensions.X * Dimensions.Y * Dimensions.Z;
+  // const int TotalSize{static_cast<int32>(m.total())};
+
+  // Set volume texture parameters.
+  inTexture->MipGenSettings = TMGS_LeaveExistingMips;
+  inTexture->NeverStream = false;
+  inTexture->CompressionNone = true;
+  inTexture->SRGB = false;
+
+  // Set PlatformData parameters (create PlatformData if it doesn't exist)
+  if (!inTexture->PlatformData) {
+    inTexture->PlatformData = new FTexturePlatformData();
+  }
+  inTexture->PlatformData->PixelFormat = PF_G8;
+  inTexture->PlatformData->SizeX = Dimensions.X;
+  inTexture->PlatformData->SizeY = Dimensions.Y;
+  inTexture->PlatformData->NumSlices = Dimensions.Z;
+
+  FTexture2DMipMap *mip = new FTexture2DMipMap();
+  mip->SizeX = Dimensions.X;
+  mip->SizeY = Dimensions.Y;
+  mip->SizeZ = Dimensions.Z;
+  mip->BulkData.Lock(LOCK_READ_WRITE);
+
+  const int sz[3]{m.size[0], m.size[1], m.size[2]};
+  uint8 *ByteArray = (uint8 *)mip->BulkData.Realloc(TotalSize);
+  cv::Mat wrap{3, sz, CV_8UC1, ByteArray};
+  m.copyTo(wrap);
+  mip->BulkData.Unlock();
+
+  // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
+  // frees space).
+  if (inTexture->PlatformData->Mips.Num() != 0) {
+    inTexture->PlatformData->Mips.Empty();
+  }
+
+  // Add the new MIP.
+  inTexture->PlatformData->Mips.Add(mip);
+  // inTexture->bUAVCompatible = true;
+
+  inTexture->UpdateResource();
+  return inTexture;
 }
