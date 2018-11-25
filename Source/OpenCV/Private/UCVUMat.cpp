@@ -296,7 +296,19 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
   inTexture->PlatformData->SizeY = Dimensions.Y;
   inTexture->PlatformData->NumSlices = Dimensions.Z;
 
-  FTexture2DMipMap *mip = new FTexture2DMipMap();
+  FTexture2DMipMap *mip;
+  if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
+    mip = &inTexture->PlatformData->Mips[0];
+  } else {
+    // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
+    // frees space).
+    if (inTexture->PlatformData->Mips.Num() != 0) {
+      inTexture->PlatformData->Mips.Empty();
+    }
+    mip = new FTexture2DMipMap();
+    // Add the new MIP.
+    inTexture->PlatformData->Mips.Add(mip);
+  }
   mip->SizeX = Dimensions.X;
   mip->SizeY = Dimensions.Y;
   mip->SizeZ = Dimensions.Z;
@@ -308,14 +320,6 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
   m.copyTo(wrap);
   mip->BulkData.Unlock();
 
-  // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
-  // frees space).
-  if (inTexture->PlatformData->Mips.Num() != 0) {
-    inTexture->PlatformData->Mips.Empty();
-  }
-
-  // Add the new MIP.
-  inTexture->PlatformData->Mips.Add(mip);
   // inTexture->bUAVCompatible = true;
 
   inTexture->UpdateResource();
