@@ -47,7 +47,7 @@ UCVUMat *UCVUMat::createMat(int32 rows, int32 cols, FCVMatType type) {
 
 namespace detail {
 template <typename TextureResourceType> struct FUpdateTextureRegionsData {
-  TextureResourceType *Texture2DResource;
+  TextureResourceType *TextureResource;
   uint32 NumRegions;
   FUpdateTextureRegion2D *Regions;
   uint32 SrcPitch;
@@ -69,7 +69,7 @@ void UpdateTextureRegions(FTexture2DResource *TextureResource, uint32 NumRegions
       UpdateTextureRegionsData, FUpdateTextureRegionsData<FTexture2DResource> *, RegionData,
       RegionData, bool, bFreeData, bFreeData, {
         for (uint32 RegionIndex = 0; RegionIndex < RegionData->NumRegions; ++RegionIndex) {
-          RHIUpdateTexture2D(RegionData->Texture2DResource->GetTexture2DRHI(), 0,
+          RHIUpdateTexture2D(RegionData->TextureResource->GetTexture2DRHI(), 0,
                              RegionData->Regions[RegionIndex], RegionData->SrcPitch,
                              RegionData->SrcData +
                                  RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch +
@@ -93,7 +93,7 @@ void UpdateTextureRegions(FTextureRenderTarget2DResource *TextureResource, uint3
       UpdateTextureRegionsData, FUpdateTextureRegionsData<FTextureRenderTarget2DResource> *,
       RegionData, RegionData, bool, bFreeData, bFreeData, {
         for (uint32 RegionIndex = 0; RegionIndex < RegionData->NumRegions; ++RegionIndex) {
-          RHIUpdateTexture2D(RegionData->Texture2DResource->GetTextureRHI(), 0,
+          RHIUpdateTexture2D(RegionData->TextureResource->GetTextureRHI(), 0,
                              RegionData->Regions[RegionIndex], RegionData->SrcPitch,
                              RegionData->SrcData +
                                  RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch +
@@ -297,9 +297,10 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
   inTexture->PlatformData->NumSlices = Dimensions.Z;
 
   FTexture2DMipMap *mip;
-  if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
-    mip = &inTexture->PlatformData->Mips[0];
-  } else {
+  // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
+  //  mip = &inTexture->PlatformData->Mips[0];
+  //} else
+  {
     // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
     // frees space).
     if (inTexture->PlatformData->Mips.Num() != 0) {
@@ -319,6 +320,33 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
   cv::Mat wrap{3, sz, CV_8UC1, ByteArray};
   m.copyTo(wrap);
   mip->BulkData.Unlock();
+
+  // struct FUpdateTextureRegions3DData {
+  //  FTextureResource *TextureResource;
+  //  FUpdateTextureRegion3D Region;
+  //  uint32 SrcRowPitch;
+  //  uint32 SrcDepthBpp;
+  //  cv::Mat SrcData;
+  //};
+
+  // auto SrcRowPitch = Dimensions.X;
+  // auto SrcDepthPitch = Dimensions.X * Dimensions.Y;
+  // auto RegionData = new FUpdateTextureRegions3DData{
+  //    inTexture->Resource,
+  //    FUpdateTextureRegion3D(0, 0, 0, 0, 0, 0, Dimensions.X, Dimensions.Y, Dimensions.Z),
+  //    SrcRowPitch, SrcDepthPitch, m.getMat(cv::ACCESS_READ)};
+
+  ////inTexture->Resource-
+
+  // ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+  //    UpdateTextureRegionsData, FUpdateTextureRegions3DData *, RegionData, RegionData, {
+  //      RHIUpdateTexture3D(RegionData->TextureResource->GetTextureRHI(), 0, RegionData->Region,
+  //                         RegionData->SrcPitch,
+  //                         RegionData->SrcData + RegionData->Region.SrcY * RegionData->SrcPitch +
+  //                             RegionData->Region.SrcX * RegionData->SrcBpp);
+
+  //      delete RegionData;
+  //    });
 
   // inTexture->bUAVCompatible = true;
 
