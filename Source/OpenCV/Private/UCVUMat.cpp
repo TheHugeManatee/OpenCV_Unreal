@@ -8,7 +8,11 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/VolumeTexture.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <opencv2/opencv.hpp>
+THIRD_PARTY_INCLUDES_END
+
+#define UPDATE_VOLUME_THROUGH_MIPS 1
 
 UCVUMat::UCVUMat() {
   UE_LOG(OpenCV, Verbose, TEXT("Default Constructed"));
@@ -264,7 +268,7 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
     return nullptr;
   }
   if (m.dims != 3) {
-    UE_LOG(OpenCV, Error, TEXT("Dimensionality mismatch: cv::UMat has to contain an image!"));
+    UE_LOG(OpenCV, Error, TEXT("Dimensionality mismatch: cv::UMat has to contain a 3D image!"));
     return nullptr;
   }
   if (m.elemSize() != 1) {
@@ -272,84 +276,101 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
     return nullptr;
   }
 
-  // if no input texture is specified, create a new one
+  const FIntVector Dimensions{m.size[2], m.size[1], m.size[0]};
+  const int TotalSize = Dimensions.X * Dimensions.Y * Dimensions.Z;
+
+  // Create a new texture if none was specified
   if (!inTexture) {
     inTexture = NewObject<UVolumeTexture>();
   }
 
-  FIntVector Dimensions{m.size[2], m.size[1], m.size[0]};
-  const int TotalSize = Dimensions.X * Dimensions.Y * Dimensions.Z;
-  // const int TotalSize{static_cast<int32>(m.total())};
-
-  // Set volume texture parameters.
-  inTexture->MipGenSettings = TMGS_LeaveExistingMips;
-  inTexture->NeverStream = false;
-  inTexture->CompressionNone = true;
-  inTexture->SRGB = false;
-
-  // Set PlatformData parameters (create PlatformData if it doesn't exist)
-  if (!inTexture->PlatformData) {
-    inTexture->PlatformData = new FTexturePlatformData();
-  }
-  inTexture->PlatformData->PixelFormat = PF_G8;
-  inTexture->PlatformData->SizeX = Dimensions.X;
-  inTexture->PlatformData->SizeY = Dimensions.Y;
-  inTexture->PlatformData->NumSlices = Dimensions.Z;
-
   FTexture2DMipMap *mip;
-  // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
-  //  mip = &inTexture->PlatformData->Mips[0];
-  //} else
-  {
-    // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
-    // frees space).
-    if (inTexture->PlatformData->Mips.Num() != 0) {
-      inTexture->PlatformData->Mips.Empty();
+
+  // If existing texture is not suitable, create a new one
+  if (inTexture->GetSizeX() != Dimensions.X || inTexture->GetSizeY() != Dimensions.Y ||
+      inTexture->GetSizeZ() != Dimensions.Z || inTexture->GetPixelFormat() != PF_G8 ||
+      !inTexture->PlatformData || !inTexture->PlatformData->Mips.IsValidIndex(0)) {
+    UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
+
+    // Set volume texture parameters.
+    inTexture->MipGenSettings = TMGS_LeaveExistingMips;
+    inTexture->NeverStream = false;
+    inTexture->CompressionNone = true;
+    inTexture->SRGB = false;
+    inTexture->bUAVCompatible = true;  // this requires the custom built engine
+
+    // Set PlatformData parameters (create PlatformData if it doesn't exist)
+    if (!inTexture->PlatformData) {
+      inTexture->PlatformData = new FTexturePlatformData();
     }
-    mip = new FTexture2DMipMap();
-    // Add the new MIP.
-    inTexture->PlatformData->Mips.Add(mip);
+    inTexture->PlatformData->PixelFormat = PF_G8;
+    inTexture->PlatformData->SizeX = Dimensions.X;
+    inTexture->PlatformData->SizeY = Dimensions.Y;
+    inTexture->PlatformData->NumSlices = Dimensions.Z;
+
+    // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
+    //  mip = &inTexture->PlatformData->Mips[0];
+    //} else
+    {
+      // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
+      // frees space).
+      if (inTexture->PlatformData->Mips.Num() != 0) {
+        inTexture->PlatformData->Mips.Empty();
+      }
+      mip = new FTexture2DMipMap();
+      // Add the new MIP.
+      inTexture->PlatformData->Mips.Add(mip);
+    }
+    mip->SizeX = Dimensions.X;
+    mip->SizeY = Dimensions.Y;
+    mip->SizeZ = Dimensions.Z;
+
+#if !UPDATE_VOLUME_THROUGH_MIPS
+    // Update the resource to make sure the buffer size matches
+    inTexture->UpdateResource();
+#endif
+  } else {
+    mip = &inTexture->PlatformData->Mips[0];
   }
-  mip->SizeX = Dimensions.X;
-  mip->SizeY = Dimensions.Y;
-  mip->SizeZ = Dimensions.Z;
-  mip->BulkData.Lock(LOCK_READ_WRITE);
+
+#if UPDATE_VOLUME_THROUGH_MIPS
+  mip->BulkData.Lock(EBulkDataLockFlags::LOCK_READ_WRITE);
 
   const int sz[3]{m.size[0], m.size[1], m.size[2]};
   uint8 *ByteArray = (uint8 *)mip->BulkData.Realloc(TotalSize);
   cv::Mat wrap{3, sz, CV_8UC1, ByteArray};
   m.copyTo(wrap);
   mip->BulkData.Unlock();
-
-  // struct FUpdateTextureRegions3DData {
-  //  FTextureResource *TextureResource;
-  //  FUpdateTextureRegion3D Region;
-  //  uint32 SrcRowPitch;
-  //  uint32 SrcDepthBpp;
-  //  cv::Mat SrcData;
-  //};
-
-  // auto SrcRowPitch = Dimensions.X;
-  // auto SrcDepthPitch = Dimensions.X * Dimensions.Y;
-  // auto RegionData = new FUpdateTextureRegions3DData{
-  //    inTexture->Resource,
-  //    FUpdateTextureRegion3D(0, 0, 0, 0, 0, 0, Dimensions.X, Dimensions.Y, Dimensions.Z),
-  //    SrcRowPitch, SrcDepthPitch, m.getMat(cv::ACCESS_READ)};
-
-  ////inTexture->Resource-
-
-  // ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-  //    UpdateTextureRegionsData, FUpdateTextureRegions3DData *, RegionData, RegionData, {
-  //      RHIUpdateTexture3D(RegionData->TextureResource->GetTextureRHI(), 0, RegionData->Region,
-  //                         RegionData->SrcPitch,
-  //                         RegionData->SrcData + RegionData->Region.SrcY * RegionData->SrcPitch +
-  //                             RegionData->Region.SrcX * RegionData->SrcBpp);
-
-  //      delete RegionData;
-  //    });
-
-  // inTexture->bUAVCompatible = true;
-
   inTexture->UpdateResource();
+#else
+  // This version of updating the texture requires a minor customization of the engine source code
+  // to allow access to the Texture3D RHI object, but might be more efficient (not confirmed)
+  struct FUpdateTextureRegions3DData {
+    FHackedVolumeTextureResource *TextureResource;
+    FUpdateTextureRegion3D Region;
+    uint32 SrcRowPitch;
+    uint32 SrcDepthPitch;
+    cv::Mat SrcData;
+  };
+
+  auto TextureResource = (FHackedVolumeTextureResource *)inTexture->Resource;
+
+  uint32 SrcRowPitch = static_cast<uint32>(Dimensions.X);
+  uint32 SrcDepthPitch = static_cast<uint32>(Dimensions.X * Dimensions.Y);
+  auto RegionData = new FUpdateTextureRegions3DData{
+      TextureResource,
+      FUpdateTextureRegion3D(0, 0, 0, 0, 0, 0, Dimensions.X, Dimensions.Y, Dimensions.Z),
+      SrcRowPitch, SrcDepthPitch, m.getMat(cv::ACCESS_READ).clone()};
+
+  ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+      UpdateTextureRegionsData, FUpdateTextureRegions3DData *, RegionData, RegionData, {
+        RHIUpdateTexture3D(RegionData->TextureResource->GetTextureRHI(), 0, RegionData->Region,
+                           RegionData->SrcRowPitch, RegionData->SrcDepthPitch,
+                           RegionData->SrcData.data);
+
+        delete RegionData;
+      });
+#endif
+
   return inTexture;
 }
