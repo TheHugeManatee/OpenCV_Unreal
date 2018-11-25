@@ -12,17 +12,15 @@ public class OpenCV : ModuleRules
 
         PublicIncludePaths.AddRange(
 			new string[] {
-				"OpenCV/Public",
-                "OpenCV/Classes"
-				// ... add public include paths required here ...
+                Path.Combine(ModuleDirectory, "Public"),
+                Path.Combine(ModuleDirectory, "Classes")
 			}
 			);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"OpenCV/Private",
-				// ... add other private include paths required here ...
+                Path.Combine(ModuleDirectory, "Private"),
 			}
 			);
 			
