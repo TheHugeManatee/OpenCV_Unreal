@@ -7,7 +7,9 @@
 
 #define LOCTEXT_NAMESPACE "FOpenCVModule"
 
+THIRD_PARTY_INCLUDES_START
 #include <opencv2/opencv.hpp>
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(OpenCV);
 

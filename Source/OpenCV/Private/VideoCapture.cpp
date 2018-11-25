@@ -7,7 +7,9 @@
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "Runtime/Core/Public/HAL/RunnableThread.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <opencv2/imgproc.hpp>
+THIRD_PARTY_INCLUDES_END
 
 using namespace cv;
 using namespace std;

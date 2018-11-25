@@ -10,8 +10,10 @@
 
 #include "Classes/UCVUMat.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
+THIRD_PARTY_INCLUDES_END
 
 #include "VideoCapture.generated.h"
 

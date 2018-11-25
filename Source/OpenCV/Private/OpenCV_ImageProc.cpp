@@ -3,7 +3,9 @@
 
 #include "OpenCV_Common.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <opencv2/imgproc.hpp>
+THIRD_PARTY_INCLUDES_END
 
 UCVUMat* UOpenCV_ImageProcessing::gaussianFilter(const UCVUMat* src, UCVUMat* dst, float sigma) {
   try {
