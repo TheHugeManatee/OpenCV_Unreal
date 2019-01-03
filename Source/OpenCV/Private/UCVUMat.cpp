@@ -293,9 +293,8 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
     UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
 
     // Set volume texture parameters.
-    inTexture->MipGenSettings = TMGS_LeaveExistingMips;
-    inTexture->NeverStream = false;
-    inTexture->CompressionNone = true;
+    
+	inTexture->NeverStream = false;
     inTexture->SRGB = false;
     inTexture->bUAVCompatible = true;  // this requires the custom built engine
 
