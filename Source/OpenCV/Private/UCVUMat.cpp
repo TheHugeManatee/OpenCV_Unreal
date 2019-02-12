@@ -27,8 +27,9 @@ UCVUMat::~UCVUMat() {
   UE_LOG(OpenCV, Verbose, TEXT("Destroyed"));
 };
 
-UCVUMat *UCVUMat::createMat(int32 rows, int32 cols, FCVMatType type) {
-  auto *r = NewObject<UCVUMat>();
+UCVUMat *UCVUMat::createMat(int32 rows, int32 cols, FCVMatType type /* = FCVMatType::CVT_EMPTY*/,
+                            UCVUMat *existingMat /* = nullptr*/) {
+  auto *r = existingMat ? existingMat : NewObject<UCVUMat>();
   int cvType = 0;
 
   switch (type) {
@@ -203,6 +204,11 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
   uint32 VideoSizeY = m.rows;
   auto size = cv::Size{m.size()};
 
+  if (m.total() == 0) {
+    UE_LOG(OpenCV, Error, TEXT("Cannot upload an empty matrix!"));
+    return texture;
+  }
+
   try {
     EPixelFormat requiredPF{EPixelFormat::PF_Unknown};
     int requiredConversion{-1};  // The OpenCV conversion parameter as used by cv::cvtColor
@@ -244,7 +250,7 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
         VideoSizeY = texture->GetSizeY();
       } else {
         UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
-        return nullptr;
+        return texture;
       }
     }
 
@@ -262,50 +268,54 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
   return texture;
 }
 
-UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
+UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
+  if (m.total() == 0) {
+    UE_LOG(OpenCV, Error, TEXT("Cannot upload an empty matrix!"));
+    return volumeTexture;
+  }
   if (m.channels() != 1) {
     UE_LOG(OpenCV, Error, TEXT("Channel mismatch: Volume has to be single-channel!"));
-    return nullptr;
+    return volumeTexture;
   }
   if (m.dims != 3) {
     UE_LOG(OpenCV, Error, TEXT("Dimensionality mismatch: cv::UMat has to contain a 3D image!"));
-    return nullptr;
+    return volumeTexture;
   }
   if (m.elemSize() != 1) {
     UE_LOG(OpenCV, Error, TEXT("Pixel size mismatch: cv::UMat has to be 1 byte per pixel!"));
-    return nullptr;
+    return volumeTexture;
   }
 
   const FIntVector Dimensions{m.size[2], m.size[1], m.size[0]};
   const int TotalSize = Dimensions.X * Dimensions.Y * Dimensions.Z;
 
   // Create a new texture if none was specified
-  if (!inTexture) {
-    inTexture = NewObject<UVolumeTexture>();
+  if (!volumeTexture) {
+    volumeTexture = NewObject<UVolumeTexture>();
   }
 
   FTexture2DMipMap *mip;
 
   // If existing texture is not suitable, create a new one
-  if (inTexture->GetSizeX() != Dimensions.X || inTexture->GetSizeY() != Dimensions.Y ||
-      inTexture->GetSizeZ() != Dimensions.Z || inTexture->GetPixelFormat() != PF_G8 ||
-      !inTexture->PlatformData || !inTexture->PlatformData->Mips.IsValidIndex(0)) {
+  if (volumeTexture->GetSizeX() != Dimensions.X || volumeTexture->GetSizeY() != Dimensions.Y ||
+      volumeTexture->GetSizeZ() != Dimensions.Z || volumeTexture->GetPixelFormat() != PF_G8 ||
+      !volumeTexture->PlatformData || !volumeTexture->PlatformData->Mips.IsValidIndex(0)) {
     UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
 
     // Set volume texture parameters.
-    
-	inTexture->NeverStream = false;
-    inTexture->SRGB = false;
-    inTexture->bUAVCompatible = true;  // this requires the custom built engine
+
+    volumeTexture->NeverStream = false;
+    volumeTexture->SRGB = false;
+    volumeTexture->bUAVCompatible = true;  // this requires the custom built engine
 
     // Set PlatformData parameters (create PlatformData if it doesn't exist)
-    if (!inTexture->PlatformData) {
-      inTexture->PlatformData = new FTexturePlatformData();
+    if (!volumeTexture->PlatformData) {
+      volumeTexture->PlatformData = new FTexturePlatformData();
     }
-    inTexture->PlatformData->PixelFormat = PF_G8;
-    inTexture->PlatformData->SizeX = Dimensions.X;
-    inTexture->PlatformData->SizeY = Dimensions.Y;
-    inTexture->PlatformData->NumSlices = Dimensions.Z;
+    volumeTexture->PlatformData->PixelFormat = PF_G8;
+    volumeTexture->PlatformData->SizeX = Dimensions.X;
+    volumeTexture->PlatformData->SizeY = Dimensions.Y;
+    volumeTexture->PlatformData->NumSlices = Dimensions.Z;
 
     // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
     //  mip = &inTexture->PlatformData->Mips[0];
@@ -313,12 +323,12 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
     {
       // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
       // frees space).
-      if (inTexture->PlatformData->Mips.Num() != 0) {
-        inTexture->PlatformData->Mips.Empty();
+      if (volumeTexture->PlatformData->Mips.Num() != 0) {
+        volumeTexture->PlatformData->Mips.Empty();
       }
       mip = new FTexture2DMipMap();
       // Add the new MIP.
-      inTexture->PlatformData->Mips.Add(mip);
+      volumeTexture->PlatformData->Mips.Add(mip);
     }
     mip->SizeX = Dimensions.X;
     mip->SizeY = Dimensions.Y;
@@ -326,10 +336,10 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
 
 #if !UPDATE_VOLUME_THROUGH_MIPS
     // Update the resource to make sure the buffer size matches
-    inTexture->UpdateResource();
+    volumeTexture->UpdateResource();
 #endif
   } else {
-    mip = &inTexture->PlatformData->Mips[0];
+    mip = &volumeTexture->PlatformData->Mips[0];
   }
 
 #if UPDATE_VOLUME_THROUGH_MIPS
@@ -340,7 +350,7 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
   cv::Mat wrap{3, sz, CV_8UC1, ByteArray};
   m.copyTo(wrap);
   mip->BulkData.Unlock();
-  inTexture->UpdateResource();
+  volumeTexture->UpdateResource();
 #else
   // This version of updating the texture requires a minor customization of the engine source code
   // to allow access to the Texture3D RHI object, but might be more efficient (not confirmed)
@@ -352,7 +362,7 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
     cv::Mat SrcData;
   };
 
-  auto TextureResource = (FHackedVolumeTextureResource *)inTexture->Resource;
+  auto TextureResource = (FHackedVolumeTextureResource *)volumeTexture->Resource;
 
   uint32 SrcRowPitch = static_cast<uint32>(Dimensions.X);
   uint32 SrcDepthPitch = static_cast<uint32>(Dimensions.X * Dimensions.Y);
@@ -371,5 +381,5 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *inTexture) {
       });
 #endif
 
-  return inTexture;
+  return volumeTexture;
 }
