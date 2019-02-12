@@ -9,20 +9,19 @@ public class OpenCV : ModuleRules
 
         bEnableExceptions = true;
         bEnableUndefinedIdentifierWarnings = false;
+        bEnforceIWYU = true;
 
         PublicIncludePaths.AddRange(
 			new string[] {
                 Path.Combine(ModuleDirectory, "Public"),
                 Path.Combine(ModuleDirectory, "Classes")
-			}
-			);
+			});
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
                 Path.Combine(ModuleDirectory, "Private"),
-			}
-			);
+			});
 			
 		
 		PublicDependencyModuleNames.AddRange(
@@ -30,8 +29,7 @@ public class OpenCV : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
-			}
-			);
+			});
 			
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
@@ -43,16 +41,14 @@ public class OpenCV : ModuleRules
                 "InputCore",
                 "RHI",
                 "RenderCore"
-            }
-			);
+            });
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+			});
 
         LoadOpenCVLib(Target);
 

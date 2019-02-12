@@ -1,23 +1,23 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "OpenCV",
-	"Description": "An OpenCV Wrapper plugin for Unreal Engine Blueprints",
-	"Category": "Other",
-	"CreatedBy": "Jakob Weiss",
-	"CreatedByURL": "",
-	"DocsURL": "",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": false,
-	"IsBetaVersion": true,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "OpenCV",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "OpenCV",
+  "Description": "An OpenCV Wrapper plugin for Unreal Engine Blueprints",
+  "Category": "Other",
+  "CreatedBy": "Jakob Weiss",
+  "CreatedByURL": "",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "jakob.weiss@tum.de",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "OpenCV",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
 }

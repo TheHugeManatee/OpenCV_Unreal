@@ -29,3 +29,13 @@ Currently only Windows is supported. This is mainly limited by my (non-existent)
 
 **Tested on Windows, Unreal Engine 4.21** <br/>
 However, other versions might still work.
+
+# FAQ
+**Q: I'm getting weird errors when including opencv header files.**
+
+You might be getting compile time errors such as 
+```
+1>F:\projects\UE4_Demo\Plugins\OpenCV\ThirdParty\opencv\include\opencv2/imgproc/imgproc_c.h(505): error C4190: 'cvReadChainPoint' has C-linkage specified, but returns UDT 'CvPoint' which is incompatible with C
+1>  F:\projects\UE4_Demo\Plugins\OpenCV\ThirdParty\opencv\include\opencv2/core/types_c.h(866): note: see declaration of 'CvPoint'
+```
+I could not yet figure out what exactly is causing this, but it usually it helps to move the opencv includes "up" in the include order, i.e. including them as early as possible. Unfortunately that means sometimes it is necessary to include them in a header file even if OpenCV is used only in the implementation.
