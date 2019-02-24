@@ -54,7 +54,7 @@ public:
    * If existingMat is not empty, it will be resized to the specified dimensions (if necessary)
    */
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Create CVUMat"), Category = "OpenCV|Core")
-  static UCVUMat* createMat(int32 rows, int32 cols, FCVMatType type = FCVMatType::CVT_EMPTY,
+  static UCVUMat* CreateMat(int32 rows, int32 cols, FCVMatType type = FCVMatType::CVT_EMPTY,
                             UCVUMat* existingMat = nullptr);
 
   /**
@@ -64,7 +64,7 @@ public:
    */
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Render Target"),
             Category = "OpenCV|Core")
-  UTextureRenderTarget2D* toRenderTarget(UTextureRenderTarget2D* renderTarget, bool resize);
+  void ToRenderTarget(UPARAM(ref) UTextureRenderTarget2D*& renderTarget, bool resize);
 
   /**
    * Convert/upload the UCVMat to a texture.
@@ -73,11 +73,19 @@ public:
    */
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Texture2D"),
             Category = "OpenCV|Core")
-  UTexture2D* toTexture(UTexture2D* texture, bool resize);
+  void ToTexture(UPARAM(ref) UTexture2D*& texture, bool resize);
 
   UFUNCTION(BlueprintCallable, meta = (DisplayName = "Copy CVUMat to Texture3D"),
             Category = "OpenCV|Core")
-  UVolumeTexture* to3DTexture(UVolumeTexture* volumeTexture);
+  void ToVolumeTexture(UPARAM(ref) UVolumeTexture*& volumeTexture);
+
+  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Create CVUMat from Texture2D"),
+            Category = "OpenCV|Core")
+  static void FromTexture2D(UTexture2D* texture, UPARAM(ref) UCVUMat*& mat);
+
+  UFUNCTION(BlueprintCallable, meta = (DisplayName = "Create CVUMat from Texture3D"),
+            Category = "OpenCV|Core")
+  static void FromVolumeTexture(UVolumeTexture* texture, UPARAM(ref) UCVUMat*& mat);
 
 private:
   //// Use this function to update the texture rects you want to change:

@@ -106,7 +106,7 @@ void AVideoCapture::UpdateFrame() {
 void AVideoCapture::UpdateTexture() {
   if (!frame->m.empty()) {
     if (RTVideoTexture) {
-      frame->toRenderTarget(RTVideoTexture, true);
+      frame->ToRenderTarget(RTVideoTexture, true);
     }
   }
 }

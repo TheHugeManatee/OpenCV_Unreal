@@ -27,7 +27,7 @@ UCVUMat::~UCVUMat() {
   UE_LOG(OpenCV, Verbose, TEXT("Destroyed"));
 };
 
-UCVUMat *UCVUMat::createMat(int32 rows, int32 cols, FCVMatType type /* = FCVMatType::CVT_EMPTY*/,
+UCVUMat *UCVUMat::CreateMat(int32 rows, int32 cols, FCVMatType type /* = FCVMatType::CVT_EMPTY*/,
                             UCVUMat *existingMat /* = nullptr*/) {
   auto *r = existingMat ? existingMat : NewObject<UCVUMat>();
   int cvType = 0;
@@ -138,15 +138,15 @@ void ConvertAndUpload(size_t requiredDataSize, int requiredConversion, cv::UMat 
 }
 }  // namespace detail
 
-UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTarget, bool resize) {
+void UCVUMat::ToRenderTarget(UTextureRenderTarget2D *&RenderTarget, bool resize) {
   uint32 VideoSizeX = m.cols;
   uint32 VideoSizeY = m.rows;
   auto size = cv::Size{m.size()};
 
   try {
     // create a new texture if none was passed in
-    if (!renderTarget) {
-      renderTarget = NewObject<UTextureRenderTarget2D>();
+    if (!RenderTarget) {
+      RenderTarget = NewObject<UTextureRenderTarget2D>();
     }
 
     // For render Targets, we always convert to BGRA as no other reasonable formats are supported
@@ -163,30 +163,30 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
         break;
       default:
         UE_LOG(OpenCV, Warning, TEXT("It seems that the OpenCV type is not supported!"));
-        return nullptr;
+        return;
     }
 
     // Reinitialize texture if necessary
-    if (renderTarget->GetFormat() != requiredPF) {
-      renderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
-      renderTarget->UpdateResourceImmediate(false);
+    if (RenderTarget->GetFormat() != requiredPF) {
+      RenderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
+      RenderTarget->UpdateResourceImmediate(false);
     }
 
     // check if we should resize
-    if (m.cols != renderTarget->SizeX || m.rows != renderTarget->SizeY) {
+    if (m.cols != RenderTarget->SizeX || m.rows != RenderTarget->SizeY) {
       if (resize) {
-        cv::resize(m, m, cv::Size{renderTarget->SizeX, renderTarget->SizeY});
-        VideoSizeX = renderTarget->SizeX;
-        VideoSizeY = renderTarget->SizeY;
+        cv::resize(m, m, cv::Size{RenderTarget->SizeX, RenderTarget->SizeY});
+        VideoSizeX = RenderTarget->SizeX;
+        VideoSizeY = RenderTarget->SizeY;
       } else {
-        renderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
-        renderTarget->UpdateResourceImmediate(false);
+        RenderTarget->InitCustomFormat(VideoSizeX, VideoSizeY, requiredPF, true);
+        RenderTarget->UpdateResourceImmediate(false);
       }
     }
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = static_cast<FTextureRenderTarget2DResource *>(renderTarget->Resource);
+    auto resource = static_cast<FTextureRenderTarget2DResource *>(RenderTarget->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);
@@ -195,18 +195,16 @@ UTextureRenderTarget2D *UCVUMat::toRenderTarget(UTextureRenderTarget2D *renderTa
     UE_LOG(OpenCV, Warning, TEXT("Function %s: Caught OpenCV Exception: %s"), TEXT(__FUNCTION__),
            UTF8_TO_TCHAR(e.what()));
   }
-
-  return renderTarget;
 }
 
-UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
+void UCVUMat::ToTexture(UTexture2D *&Texture, bool Resize) {
   uint32 VideoSizeX = m.cols;
   uint32 VideoSizeY = m.rows;
   auto size = cv::Size{m.size()};
 
   if (m.total() == 0) {
     UE_LOG(OpenCV, Error, TEXT("Cannot upload an empty matrix!"));
-    return texture;
+    return;
   }
 
   try {
@@ -232,31 +230,31 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
         break;
       default:
         UE_LOG(OpenCV, Warning, TEXT("It seems that the OpenCV type is not supported!"));
-        return nullptr;
+        return;
         break;
     }
 
     // create/reinitialize texture if necessary
-    if (!texture || texture->GetPixelFormat() != requiredPF) {
-      texture = UTexture2D::CreateTransient(VideoSizeX, VideoSizeY, requiredPF);
-      texture->UpdateResource();
+    if (!Texture || Texture->GetPixelFormat() != requiredPF) {
+      Texture = UTexture2D::CreateTransient(VideoSizeX, VideoSizeY, requiredPF);
+      Texture->UpdateResource();
     }
 
     // check if we should resize
-    if (m.cols != texture->GetSizeX() || m.rows != texture->GetSizeY()) {
-      if (resize) {
-        cv::resize(m, m, cv::Size{texture->GetSizeX(), texture->GetSizeY()});
-        VideoSizeX = texture->GetSizeX();
-        VideoSizeY = texture->GetSizeY();
+    if (m.cols != Texture->GetSizeX() || m.rows != Texture->GetSizeY()) {
+      if (Resize) {
+        cv::resize(m, m, cv::Size{Texture->GetSizeX(), Texture->GetSizeY()});
+        VideoSizeX = Texture->GetSizeX();
+        VideoSizeY = Texture->GetSizeY();
       } else {
         UE_LOG(OpenCV, Warning, TEXT("Render target size does not match and resize=false!"));
-        return texture;
+        return;
       }
     }
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = static_cast<FTexture2DResource *>(texture->Resource);
+    auto resource = static_cast<FTexture2DResource *>(Texture->Resource);
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);
@@ -264,58 +262,56 @@ UTexture2D *UCVUMat::toTexture(UTexture2D *texture, bool resize) {
     UE_LOG(OpenCV, Warning, TEXT("Function %s: Caught OpenCV Exception: %s"), TEXT(__FUNCTION__),
            UTF8_TO_TCHAR(e.what()));
   }
-
-  return texture;
 }
 
-UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
+void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
   if (m.total() == 0) {
     UE_LOG(OpenCV, Error, TEXT("Cannot upload an empty matrix!"));
-    return volumeTexture;
+    return;
   }
   if (m.channels() != 1) {
     UE_LOG(OpenCV, Error, TEXT("Channel mismatch: Volume has to be single-channel!"));
-    return volumeTexture;
+    return;
   }
   if (m.dims != 3) {
     UE_LOG(OpenCV, Error, TEXT("Dimensionality mismatch: cv::UMat has to contain a 3D image!"));
-    return volumeTexture;
+    return;
   }
   if (m.elemSize() != 1) {
     UE_LOG(OpenCV, Error, TEXT("Pixel size mismatch: cv::UMat has to be 1 byte per pixel!"));
-    return volumeTexture;
+    return;
   }
 
   const FIntVector Dimensions{m.size[2], m.size[1], m.size[0]};
   const int TotalSize = Dimensions.X * Dimensions.Y * Dimensions.Z;
 
   // Create a new texture if none was specified
-  if (!volumeTexture) {
-    volumeTexture = NewObject<UVolumeTexture>();
+  if (!VolumeTexture) {
+    VolumeTexture = NewObject<UVolumeTexture>();
   }
 
   FTexture2DMipMap *mip;
 
   // If existing texture is not suitable, create a new one
-  if (volumeTexture->GetSizeX() != Dimensions.X || volumeTexture->GetSizeY() != Dimensions.Y ||
-      volumeTexture->GetSizeZ() != Dimensions.Z || volumeTexture->GetPixelFormat() != PF_G8 ||
-      !volumeTexture->PlatformData || !volumeTexture->PlatformData->Mips.IsValidIndex(0)) {
+  if (VolumeTexture->GetSizeX() != Dimensions.X || VolumeTexture->GetSizeY() != Dimensions.Y ||
+      VolumeTexture->GetSizeZ() != Dimensions.Z || VolumeTexture->GetPixelFormat() != PF_G8 ||
+      !VolumeTexture->PlatformData || !VolumeTexture->PlatformData->Mips.IsValidIndex(0)) {
     UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
 
     // Set volume texture parameters.
 
-    volumeTexture->NeverStream = false;
-    volumeTexture->SRGB = false;
-    volumeTexture->bUAVCompatible = true;  // this requires the custom built engine
+    VolumeTexture->NeverStream = false;
+    VolumeTexture->SRGB = false;
+    VolumeTexture->bUAVCompatible = true;  // this requires the custom built engine
 
     // Set PlatformData parameters (create PlatformData if it doesn't exist)
-    if (!volumeTexture->PlatformData) {
-      volumeTexture->PlatformData = new FTexturePlatformData();
+    if (!VolumeTexture->PlatformData) {
+      VolumeTexture->PlatformData = new FTexturePlatformData();
     }
-    volumeTexture->PlatformData->PixelFormat = PF_G8;
-    volumeTexture->PlatformData->SizeX = Dimensions.X;
-    volumeTexture->PlatformData->SizeY = Dimensions.Y;
-    volumeTexture->PlatformData->NumSlices = Dimensions.Z;
+    VolumeTexture->PlatformData->PixelFormat = PF_G8;
+    VolumeTexture->PlatformData->SizeX = Dimensions.X;
+    VolumeTexture->PlatformData->SizeY = Dimensions.Y;
+    VolumeTexture->PlatformData->NumSlices = Dimensions.Z;
 
     // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
     //  mip = &inTexture->PlatformData->Mips[0];
@@ -323,12 +319,12 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
     {
       // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
       // frees space).
-      if (volumeTexture->PlatformData->Mips.Num() != 0) {
-        volumeTexture->PlatformData->Mips.Empty();
+      if (VolumeTexture->PlatformData->Mips.Num() != 0) {
+        VolumeTexture->PlatformData->Mips.Empty();
       }
       mip = new FTexture2DMipMap();
       // Add the new MIP.
-      volumeTexture->PlatformData->Mips.Add(mip);
+      VolumeTexture->PlatformData->Mips.Add(mip);
     }
     mip->SizeX = Dimensions.X;
     mip->SizeY = Dimensions.Y;
@@ -336,10 +332,10 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
 
 #if !UPDATE_VOLUME_THROUGH_MIPS
     // Update the resource to make sure the buffer size matches
-    volumeTexture->UpdateResource();
+    VolumeTexture->UpdateResource();
 #endif
   } else {
-    mip = &volumeTexture->PlatformData->Mips[0];
+    mip = &VolumeTexture->PlatformData->Mips[0];
   }
 
 #if UPDATE_VOLUME_THROUGH_MIPS
@@ -350,7 +346,7 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
   cv::Mat wrap{3, sz, CV_8UC1, ByteArray};
   m.copyTo(wrap);
   mip->BulkData.Unlock();
-  volumeTexture->UpdateResource();
+  VolumeTexture->UpdateResource();
 #else
   // This version of updating the texture requires a minor customization of the engine source code
   // to allow access to the Texture3D RHI object, but might be more efficient (not confirmed)
@@ -362,7 +358,7 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
     cv::Mat SrcData;
   };
 
-  auto TextureResource = (FHackedVolumeTextureResource *)volumeTexture->Resource;
+  auto TextureResource = (FHackedVolumeTextureResource *)VolumeTexture->Resource;
 
   uint32 SrcRowPitch = static_cast<uint32>(Dimensions.X);
   uint32 SrcDepthPitch = static_cast<uint32>(Dimensions.X * Dimensions.Y);
@@ -380,6 +376,168 @@ UVolumeTexture *UCVUMat::to3DTexture(UVolumeTexture *volumeTexture) {
         delete RegionData;
       });
 #endif
-
-  return volumeTexture;
 }
+
+void UCVUMat::FromTexture2D(UTexture2D *Texture, UCVUMat *&Mat) {
+  if (!ensure(Texture != nullptr)) {
+    UE_LOG(OpenCV, Error, TEXT("The given texture is empty!"));
+  }
+
+  if (Mat == nullptr) {
+    Mat = NewObject<UCVUMat>();
+  }
+
+  if (!ensure(Texture->PlatformData != nullptr && Texture->PlatformData->Mips.Num() > 0)) {
+    UE_LOG(OpenCV, Error,
+           TEXT("Given texture does not have platform data or does not have mipmaps!"));
+    return;
+  }
+
+  cv::Mat m = Mat->m.getMat(cv::ACCESS_RW);
+
+  int cvFormat{-1};
+  if (Texture->PlatformData->PixelFormat == PF_G8) {
+    cvFormat = CV_8UC1;
+  } else if (Texture->PlatformData->PixelFormat == PF_B8G8R8A8 ||
+             Texture->PlatformData->PixelFormat == PF_R8G8B8A8) {
+    cvFormat = CV_8UC4;
+  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGB) {
+    cvFormat = CV_32FC3;
+  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGBA) {
+    cvFormat = CV_32FC4;
+  }
+
+  if (!ensure(cvFormat != -1)) {
+    UE_LOG(OpenCV, Error, TEXT("Given texture has a currently unsupported format!"));
+    return;
+  }
+
+  // auto &mip = texture->PlatformData->Mips[0];
+  // void *memoryBuffer = mip.BulkData.Lock(EBulkDataLockFlags::LOCK_READ_WRITE);
+
+  struct FCopyBufferData {
+    UTexture2D *Texture;
+    TPromise<void> Promise;
+    cv::Mat Mat;
+    int32 cvFormat;
+  };
+  using FCommandDataPtr = TSharedPtr<FCopyBufferData, ESPMode::ThreadSafe>;
+  FCommandDataPtr CommandData = MakeShared<FCopyBufferData, ESPMode::ThreadSafe>();
+  CommandData->Texture = Texture;
+  CommandData->Mat = m;
+  CommandData->cvFormat = cvFormat;
+
+  auto Future = CommandData->Promise.GetFuture();
+
+  ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+      CopyTextureToCVMat, FCommandDataPtr, CommandData, CommandData, {
+        auto Texture2DRHI = CommandData->Texture->Resource->TextureRHI->GetTexture2D();
+        uint32 DestPitch{0};
+        uint8 *memoryBuffer = (uint8 *)RHILockTexture2D(
+            Texture2DRHI, 0, EResourceLockMode::RLM_ReadOnly, DestPitch, false);
+
+        int SizeX = CommandData->Texture->GetSizeX();
+        int SizeY = CommandData->Texture->GetSizeY();
+
+        cv::Mat memoryWrapper(SizeY, SizeX, CommandData->cvFormat, memoryBuffer);
+        memoryWrapper.copyTo(CommandData->Mat);
+        RHIUnlockTexture2D(Texture2DRHI, 0, false);
+        CommandData->Promise.SetValue();
+      });
+
+  // wait until render thread operation completes
+  Future.Get();
+
+  Mat->m = CommandData->Mat.getUMat(cv::ACCESS_RW);
+}
+
+void UCVUMat::FromVolumeTexture(UVolumeTexture *Texture, UCVUMat *&Mat) {
+  if (!ensure(Texture != nullptr)) {
+    UE_LOG(OpenCV, Error, TEXT("The given texture is empty!"));
+  }
+
+  if (Mat == nullptr) {
+    Mat = NewObject<UCVUMat>();
+  }
+
+  if (!ensure(Texture->PlatformData != nullptr && Texture->PlatformData->Mips.Num() > 0)) {
+    UE_LOG(OpenCV, Error,
+           TEXT("Given texture does not have platform data or does not have mipmaps!"));
+    return;
+  }
+
+  cv::Mat m = Mat->m.getMat(cv::ACCESS_RW);
+
+  int cvFormat{-1};
+  if (Texture->PlatformData->PixelFormat == PF_G8 || Texture->PlatformData->PixelFormat == PF_A8) {
+    cvFormat = CV_8UC1;
+  } else if (Texture->PlatformData->PixelFormat == PF_B8G8R8A8 ||
+             Texture->PlatformData->PixelFormat == PF_R8G8B8A8) {
+    cvFormat = CV_8UC4;
+  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGB) {
+    cvFormat = CV_32FC3;
+  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGBA) {
+    cvFormat = CV_32FC4;
+  }
+
+  if (!ensure(cvFormat != -1)) {
+    UE_LOG(OpenCV, Error, TEXT("Given texture has a currently unsupported format!"));
+    return;
+  }
+
+  auto &mip = Texture->PlatformData->Mips[0];
+  void *memoryBuffer = mip.BulkData.Lock(EBulkDataLockFlags::LOCK_READ_WRITE);
+
+  if (ensure(memoryBuffer != nullptr)) {
+    int32 SizeX = Texture->GetSizeX();
+    int32 SizeY = Texture->GetSizeY();
+    int32 SizeZ = Texture->GetSizeZ();
+
+    cv::Mat memoryWrapper({SizeZ, SizeY, SizeX}, cvFormat, memoryBuffer);
+    memoryWrapper.copyTo(m);
+  } else {
+    UE_LOG(OpenCV, Error,
+           TEXT("Could not lock Mip 0. Apparently this texture does not have CPU backing."));
+  }
+  mip.BulkData.Unlock();
+
+  Mat->m = m.getUMat(cv::ACCESS_RW);
+}
+
+//
+// void CopyTextureToArray(UTexture2D *Texture, TArray<FColor> &Array) {
+//  struct FCopyBufferData {
+//    UTexture2D *Texture;
+//    TPromise<void> Promise;
+//    TArray<FColor> DestBuffer;
+//  };
+//  using FCommandDataPtr = TSharedPtr<FCopyBufferData, ESPMode::ThreadSafe>;
+//  FCommandDataPtr CommandData = MakeShared<FCopyBufferData, ESPMode::ThreadSafe>();
+//  CommandData->Texture = Texture;
+//  CommandData->DestBuffer.SetNum(Texture->GetSizeX() * Texture->GetSizeY());
+//
+//  auto Future = CommandData->Promise.GetFuture();
+//
+//  ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+//      CopyTextureToArray, FCommandDataPtr, CommandData, CommandData, {
+//        auto Texture2DRHI = CommandData->Texture->Resource->TextureRHI->GetTexture2D();
+//        uint32 DestPitch{0};
+//        uint8 *MappedTextureMemory = (uint8 *)RHILockTexture2D(
+//            Texture2DRHI, 0, EResourceLockMode::RLM_ReadOnly, DestPitch, false);
+//
+//        uint32 SizeX = CommandData->Texture->GetSizeX();
+//        uint32 SizeY = CommandData->Texture->GetSizeY();
+//
+//        FMemory::Memcpy(CommandData->DestBuffer.GetData(), MappedTextureMemory,
+//                        SizeX * SizeY * sizeof(FColor));
+//
+//        RHIUnlockTexture2D(Texture2DRHI, 0, false);
+//        // signal completion of the operation
+//        CommandData->Promise.SetValue();
+//      });
+//
+//  // wait until render thread operation completes
+//  Future.Get();
+//
+//  Array = std::move(CommandData->DestBuffer);
+//}
