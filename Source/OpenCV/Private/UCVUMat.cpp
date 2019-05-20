@@ -293,10 +293,15 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
 
   FTexture2DMipMap *mip;
 
+  // TODO If an existing mip is selected and updated (through mip->BulkData), the change will
+  // not have an effect in packaged builds. Only newly created mips work. Investigate!
+
   // If existing texture is not suitable, create a new one
-  if (VolumeTexture->GetSizeX() != Dimensions.X || VolumeTexture->GetSizeY() != Dimensions.Y ||
+  /*if (VolumeTexture->GetSizeX() != Dimensions.X || VolumeTexture->GetSizeY() != Dimensions.Y ||
       VolumeTexture->GetSizeZ() != Dimensions.Z || VolumeTexture->GetPixelFormat() != PF_G8 ||
-      !VolumeTexture->PlatformData || !VolumeTexture->PlatformData->Mips.IsValidIndex(0)) {
+      !VolumeTexture->PlatformData || !VolumeTexture->PlatformData->Mips.IsValidIndex(0)) 
+  */
+  {
     UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
 
     // Set volume texture parameters.
@@ -309,24 +314,22 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
     if (!VolumeTexture->PlatformData) {
       VolumeTexture->PlatformData = new FTexturePlatformData();
     }
+
     VolumeTexture->PlatformData->PixelFormat = PF_G8;
     VolumeTexture->PlatformData->SizeX = Dimensions.X;
     VolumeTexture->PlatformData->SizeY = Dimensions.Y;
     VolumeTexture->PlatformData->NumSlices = Dimensions.Z;
 
-    // if (inTexture->PlatformData->Mips.IsValidIndex(0)) {
-    //  mip = &inTexture->PlatformData->Mips[0];
-    //} else
-    {
-      // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
-      // frees space).
-      if (VolumeTexture->PlatformData->Mips.Num() != 0) {
-        VolumeTexture->PlatformData->Mips.Empty();
-      }
-      mip = new FTexture2DMipMap();
-      // Add the new MIP.
-      VolumeTexture->PlatformData->Mips.Add(mip);
+    // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
+    // frees space).
+    if (VolumeTexture->PlatformData->Mips.Num() != 0) {
+		VolumeTexture->PlatformData->Mips.Empty();
     }
+   
+	mip = new FTexture2DMipMap();
+    // Add the new MIP.
+    VolumeTexture->PlatformData->Mips.Add(mip);
+   
     mip->SizeX = Dimensions.X;
     mip->SizeY = Dimensions.Y;
     mip->SizeZ = Dimensions.Z;
@@ -335,9 +338,11 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
     // Update the resource to make sure the buffer size matches
     VolumeTexture->UpdateResource();
 #endif
-  } else {
-    mip = &VolumeTexture->PlatformData->Mips[0];
-  }
+  } 
+  // Doesn't work due to the above TODO...
+  //  else {
+  //	mip = VolumeTexture->PlatformData->Mips[0];
+  //  }
 
 #if UPDATE_VOLUME_THROUGH_MIPS
   mip->BulkData.Lock(EBulkDataLockFlags::LOCK_READ_WRITE);
