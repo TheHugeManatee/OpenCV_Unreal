@@ -31,7 +31,7 @@ void ASceneCaptureRecorder::BeginPlay() {
 }
 
 void ASceneCaptureRecorder::EndPlay(const EEndPlayReason::Type reason) {
-  VideoWriter.reset();
+  // VideoWriter.reset();
 }
 
 // Called every frame
