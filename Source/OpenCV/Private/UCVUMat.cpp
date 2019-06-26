@@ -16,16 +16,22 @@ THIRD_PARTY_INCLUDES_END
 #define UPDATE_VOLUME_THROUGH_MIPS 1
 
 UCVUMat::UCVUMat() {
+#if CV_ENABLE_INSTANCE_TRACKING
   UE_LOG(OpenCV, Verbose, TEXT("Default Constructed"));
+#endif
 };
 
 UCVUMat::UCVUMat(const cv::UMat &m_) : m(m_) {
+#if CV_ENABLE_INSTANCE_TRACKING
   UE_LOG(OpenCV, Verbose, TEXT("Constructed w/ cv::Mat constructor"));
+#endif
 };
 // UCVMat(const UCVMat& ma) : m(ma.m) { /* */  };
 
 UCVUMat::~UCVUMat() {
+#if CV_ENABLE_INSTANCE_TRACKING
   UE_LOG(OpenCV, Verbose, TEXT("Destroyed"));
+#endif
 };
 
 UCVUMat *UCVUMat::CreateMat(int32 rows, int32 cols, FCVMatType type /* = FCVMatType::CVT_EMPTY*/,
@@ -299,7 +305,7 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
   // If existing texture is not suitable, create a new one
   /*if (VolumeTexture->GetSizeX() != Dimensions.X || VolumeTexture->GetSizeY() != Dimensions.Y ||
       VolumeTexture->GetSizeZ() != Dimensions.Z || VolumeTexture->GetPixelFormat() != PF_G8 ||
-      !VolumeTexture->PlatformData || !VolumeTexture->PlatformData->Mips.IsValidIndex(0)) 
+      !VolumeTexture->PlatformData || !VolumeTexture->PlatformData->Mips.IsValidIndex(0))
   */
   {
     UE_LOG(OpenCV, Warning, TEXT("Created a new texture!"));
@@ -323,13 +329,13 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
     // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
     // frees space).
     if (VolumeTexture->PlatformData->Mips.Num() != 0) {
-		VolumeTexture->PlatformData->Mips.Empty();
+      VolumeTexture->PlatformData->Mips.Empty();
     }
-   
-	mip = new FTexture2DMipMap();
+
+    mip = new FTexture2DMipMap();
     // Add the new MIP.
     VolumeTexture->PlatformData->Mips.Add(mip);
-   
+
     mip->SizeX = Dimensions.X;
     mip->SizeY = Dimensions.Y;
     mip->SizeZ = Dimensions.Z;
@@ -338,7 +344,7 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
     // Update the resource to make sure the buffer size matches
     VolumeTexture->UpdateResource();
 #endif
-  } 
+  }
   // Doesn't work due to the above TODO...
   //  else {
   //	mip = VolumeTexture->PlatformData->Mips[0];
@@ -387,6 +393,7 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
 void UCVUMat::FromTexture2D(UTexture2D *Texture, UCVUMat *&Mat) {
   if (!ensure(Texture != nullptr)) {
     UE_LOG(OpenCV, Error, TEXT("The given texture is empty!"));
+    return;
   }
 
   if (Mat == nullptr) {
